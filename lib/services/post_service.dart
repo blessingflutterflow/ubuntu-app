@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/post_model.dart';
 import 'notification_service.dart';
@@ -107,7 +107,7 @@ class PostService {
     return postId;
   }
 
-  Future<String> createImagePost(String caption, List<File> images) async {
+  Future<String> createImagePost(String caption, List<XFile> images) async {
     final uid      = _uid!;
     final userData = await _getUserData(uid);
     final urls     = await Future.wait(images.map((f) => _uploadFile(f, 'posts/images')));
@@ -133,7 +133,7 @@ class PostService {
     return postId;
   }
 
-  Future<String> createVideoPost(String caption, File video, {File? thumbnail}) async {
+  Future<String> createVideoPost(String caption, XFile video, {XFile? thumbnail}) async {
     final uid        = _uid!;
     final userData   = await _getUserData(uid);
     final videoUrl   = await _uploadFile(video, 'posts/videos');
@@ -179,10 +179,12 @@ class PostService {
     return posts;
   }
 
-  Future<String> _uploadFile(File file, String path) async {
-    final filename = '${_uuid.v4()}.${file.path.split('.').last}';
-    final ref      = _storage.ref().child('$path/$filename');
-    await ref.putFile(file);
+  Future<String> _uploadFile(XFile file, String path) async {
+    final bytes = await file.readAsBytes();
+    final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+    final filename = '${_uuid.v4()}.$ext';
+    final ref = _storage.ref().child('$path/$filename');
+    await ref.putData(bytes);
     return ref.getDownloadURL();
   }
 

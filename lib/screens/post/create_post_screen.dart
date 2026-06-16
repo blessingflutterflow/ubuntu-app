@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import '../../services/post_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/gradient_button.dart';
@@ -18,8 +18,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _postService = PostService();
   final _picker      = ImagePicker();
 
-  List<File> _images    = [];
-  File?      _video;
+  List<XFile> _images   = [];
+  XFile?     _video;
   bool       _loading   = false;
   String     _mediaType = 'text'; // text | image | video
 
@@ -33,7 +33,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final files = await _picker.pickMultiImage(imageQuality: 80);
     if (files.isNotEmpty && mounted) {
       setState(() {
-        _images    = files.map((f) => File(f.path)).toList();
+        _images    = files;
         _video     = null;
         _mediaType = 'image';
       });
@@ -44,7 +44,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final file = await _picker.pickVideo(source: ImageSource.gallery);
     if (file != null && mounted) {
       setState(() {
-        _video     = File(file.path);
+        _video     = file;
         _images    = [];
         _mediaType = 'video';
       });
@@ -117,7 +117,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 child: PageView(
                   children: _images.map((f) => ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(f, fit: BoxFit.cover, width: double.infinity),
+                    child: _buildImagePreview(f),
                   )).toList(),
                 ),
               )
@@ -190,6 +190,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildImagePreview(XFile file) {
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(snapshot.data!, fit: BoxFit.cover, width: double.infinity);
+        }
+        return Container(color: UbuntuColors.surface, child: const Center(child: CircularProgressIndicator()));
+      },
     );
   }
 }

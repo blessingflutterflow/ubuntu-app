@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/user_model.dart';
 
 class UserService {
@@ -26,7 +26,7 @@ class UserService {
     required String displayName,
     required String username,
     required String bio,
-    File? profileImage,
+    XFile? profileImage,
   }) async {
     final uid     = _uid!;
     final updates = <String, dynamic>{
@@ -38,7 +38,7 @@ class UserService {
 
     if (profileImage != null) {
       final ref = _storage.ref().child('profile_pictures/$uid.jpg');
-      await ref.putFile(profileImage);
+      await ref.putData(await profileImage.readAsBytes());
       updates['profileImageUrl'] = await ref.getDownloadURL();
     }
 

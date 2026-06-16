@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import '../../models/user_model.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
@@ -22,7 +22,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _bioCtrl       = TextEditingController();
 
   UserModel? _user;
-  File?      _imageFile;
+  XFile?     _pickedImage;
+  Uint8List? _imageBytes;
   bool       _loading = false;
 
   @override
@@ -47,7 +48,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final picker = ImagePicker();
     final xfile  = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (xfile != null && mounted) {
-      setState(() => _imageFile = File(xfile.path));
+      final bytes = await xfile.readAsBytes();
+      setState(() {
+        _pickedImage = xfile;
+        _imageBytes = bytes;
+      });
     }
   }
 
@@ -66,7 +71,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         displayName:  name,
         username:     username,
         bio:          _bioCtrl.text.trim(),
-        profileImage: _imageFile,
+        profileImage: _pickedImage,
       );
       if (mounted) context.pop();
     } catch (e) {
@@ -110,8 +115,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onTap: _pickImage,
               child: Stack(
                 children: [
-                  _imageFile != null
-                      ? CircleAvatar(radius: 50, backgroundImage: FileImage(_imageFile!))
+                  _pickedImage != null
+                      ? CircleAvatar(radius: 50, backgroundImage: MemoryImage(_imageBytes!))
                       : UbuntuAvatar(url: _user?.profileImageUrl, size: 100, borderWidth: 1),
                   Positioned(
                     bottom: 0, right: 0,
