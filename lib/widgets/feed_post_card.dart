@@ -91,7 +91,7 @@ class _FeedPostCardState extends State<FeedPostCard> with SingleTickerProviderSt
               children: [
                 GestureDetector(
                   onTap: widget.onOpenProfile,
-                  child: StoryRing(avatarUrl: post.user.profileImageUrl, isUnread: false, size: 36),
+                  child: StoryRing(avatarUrl: post.user.profileImageUrl, name: post.user.username, isUnread: false, size: 36),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -229,8 +229,14 @@ class _ImageMedia extends StatelessWidget {
               imageUrl:    url,
               fit:         BoxFit.cover,
               width:       double.infinity,
-              placeholder: (_, __) => Container(color: UbuntuColors.input),
-              errorWidget: (_, __, ___) => Container(color: UbuntuColors.input),
+              placeholder: (_, __) => Container(
+                color: UbuntuColors.surface,
+                child: const Center(child: CircularProgressIndicator(color: UbuntuColors.primary, strokeWidth: 2)),
+              ),
+              errorWidget: (_, __, ___) => Container(
+                color: UbuntuColors.surface,
+                child: const Icon(Icons.broken_image, color: UbuntuColors.muted, size: 48),
+              ),
             ),
             if (showBurst)
               ScaleTransition(
@@ -249,6 +255,8 @@ class _VideoThumb extends StatelessWidget {
   final VoidCallback? onTap;
   const _VideoThumb({required this.thumbUrl, this.onTap});
 
+  bool get _hasThumb => thumbUrl.trim().isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -258,13 +266,18 @@ class _VideoThumb extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            CachedNetworkImage(
-              imageUrl:    thumbUrl,
-              fit:         BoxFit.cover,
-              width:       double.infinity,
-              placeholder: (_, __) => Container(color: UbuntuColors.input),
-              errorWidget: (_, __, ___) => Container(color: UbuntuColors.input),
-            ),
+            // Base layer: thumbnail or dark placeholder
+            _hasThumb
+                ? CachedNetworkImage(
+                    imageUrl:    thumbUrl,
+                    fit:         BoxFit.cover,
+                    width:       double.infinity,
+                    placeholder: (_, __) => _darkPlaceholder(),
+                    errorWidget: (_, __, ___) => _darkPlaceholder(),
+                  )
+                : _darkPlaceholder(),
+
+            // Play button
             Container(
               width:  64,
               height: 64,
@@ -274,6 +287,8 @@ class _VideoThumb extends StatelessWidget {
               ),
               child: const Icon(Icons.play_arrow, color: Colors.white, size: 36),
             ),
+
+            // Reel badge
             Positioned(
               top: 10, right: 10,
               child: Container(
@@ -287,6 +302,17 @@ class _VideoThumb extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _darkPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFF1A1A1A),
+      child: const Center(
+        child: Icon(Icons.videocam, color: Color(0xFF444444), size: 48),
       ),
     );
   }

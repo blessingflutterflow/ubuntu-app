@@ -154,7 +154,7 @@ class _NotifRow extends StatelessWidget {
               width: 46, height: 46,
               child: Stack(
                 children: [
-                  UbuntuAvatar(url: notif.senderProfileImageUrl, size: 46),
+                  UbuntuAvatar(url: notif.senderProfileImageUrl, name: notif.senderUsername, size: 46),
                   Positioned(
                     bottom: 0, right: 0,
                     child: Container(

@@ -106,7 +106,7 @@ class _CommentRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          UbuntuAvatar(url: comment.profileImageUrl, size: 34),
+          UbuntuAvatar(url: comment.profileImageUrl, name: comment.username, size: 34),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -152,6 +152,7 @@ class _CommentInput extends StatelessWidget {
               future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
               builder: (_, snap) => UbuntuAvatar(
                 url:  snap.data?.get('profileImageUrl') as String?,
+                name: snap.data?.get('username') as String? ?? '',
                 size: 34,
               ),
             ),

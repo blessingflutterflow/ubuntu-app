@@ -167,7 +167,7 @@ class _ProfileHeader extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          UbuntuAvatar(url: p?.profileImageUrl, size: 90, borderWidth: 1),
+          UbuntuAvatar(url: p?.profileImageUrl, name: p?.displayName ?? p?.username, size: 90, borderWidth: 1),
           const SizedBox(height: 12),
           Text(
             p?.displayName.isNotEmpty == true ? p!.displayName : (p?.username ?? ''),

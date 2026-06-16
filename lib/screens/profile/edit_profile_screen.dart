@@ -117,7 +117,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   _pickedImage != null
                       ? CircleAvatar(radius: 50, backgroundImage: MemoryImage(_imageBytes!))
-                      : UbuntuAvatar(url: _user?.profileImageUrl, size: 100, borderWidth: 1),
+                      : UbuntuAvatar(url: _user?.profileImageUrl, name: _user?.displayName ?? _user?.username, size: 100, borderWidth: 1),
                   Positioned(
                     bottom: 0, right: 0,
                     child: Container(

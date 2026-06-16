@@ -171,7 +171,7 @@ class _ReelItemState extends State<_ReelItem> {
                 onTap: () => context.push('/profile/${post.user.id}'),
                 child: Row(
                   children: [
-                    UbuntuAvatar(url: post.user.profileImageUrl, size: 32, borderWidth: 1, borderColor: Colors.white),
+                    UbuntuAvatar(url: post.user.profileImageUrl, name: post.user.username, size: 32, borderWidth: 1, borderColor: Colors.white),
                     const SizedBox(width: 8),
                     Text('@${post.user.username}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
                   ],

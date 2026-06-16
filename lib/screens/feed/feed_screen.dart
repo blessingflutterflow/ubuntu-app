@@ -268,8 +268,8 @@ class _OwnStoryItem extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 user.hasActiveStory
-                    ? StoryRing(avatarUrl: user.profileImageUrl, isUnread: true,  size: 80)
-                    : UbuntuAvatar(url: user.profileImageUrl, size: 80, borderWidth: 1),
+                    ? StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: true,  size: 80)
+                    : UbuntuAvatar(url: user.profileImageUrl, name: user.username, size: 80, borderWidth: 1),
                 Positioned(
                   bottom: 0, right: 0,
                   child: Container(
@@ -300,7 +300,7 @@ class _StoryItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          StoryRing(avatarUrl: user.profileImageUrl, isUnread: user.hasActiveStory, size: 80),
+          StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: user.hasActiveStory, size: 80),
           const SizedBox(height: 5),
           SizedBox(
             width: 80,
@@ -360,8 +360,10 @@ class _BottomNav extends StatelessWidget {
                 future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
                 builder: (_, snap) {
                   final url = snap.data?.get('profileImageUrl') as String?;
+                  final name = snap.data?.get('username') as String? ?? '';
                   return UbuntuAvatar(
                     url:         url,
+                    name:        name,
                     size:        26,
                     borderWidth: selected == 3 ? 2 : 0,
                     borderColor: UbuntuColors.ink,

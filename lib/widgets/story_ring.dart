@@ -5,13 +5,24 @@ import '../theme/app_theme.dart';
 
 class StoryRing extends StatelessWidget {
   final String? avatarUrl;
+  final String? name;
   final bool isUnread;
   final double size;
 
-  const StoryRing({super.key, this.avatarUrl, required this.isUnread, this.size = 66});
+  const StoryRing({super.key, this.avatarUrl, this.name, required this.isUnread, this.size = 66});
+
+  String get _initials {
+    if (name == null || name!.trim().isEmpty) return '?';
+    final parts = name!.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+    }
+    return parts.first[0].toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final hasUrl = avatarUrl != null && avatarUrl!.trim().isNotEmpty;
     return SizedBox(
       width:  size,
       height: size,
@@ -22,16 +33,31 @@ class StoryRing extends StatelessWidget {
             child: SizedBox(
               width:  size - 7,
               height: size - 7,
-              child: avatarUrl != null && avatarUrl!.isNotEmpty
+              child: hasUrl
                   ? CachedNetworkImage(
                       imageUrl:    avatarUrl!,
                       fit:         BoxFit.cover,
-                      placeholder: (_, __) => Container(color: UbuntuColors.input),
-                      errorWidget: (_, __, ___) => Container(color: UbuntuColors.input),
+                      placeholder: (_, __) => _fallback(),
+                      errorWidget: (_, __, ___) => _fallback(),
                     )
-                  : Container(color: UbuntuColors.input),
+                  : _fallback(),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fallback() {
+    return Container(
+      color: UbuntuColors.primary,
+      alignment: Alignment.center,
+      child: Text(
+        _initials,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: (size - 7) * 0.35,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
