@@ -266,16 +266,16 @@ class _VideoThumb extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Base layer: thumbnail or dark placeholder
+            // Base layer: thumbnail or light placeholder (matches Kotlin app)
             _hasThumb
                 ? CachedNetworkImage(
                     imageUrl:    thumbUrl,
                     fit:         BoxFit.cover,
                     width:       double.infinity,
-                    placeholder: (_, __) => _darkPlaceholder(),
-                    errorWidget: (_, __, ___) => _darkPlaceholder(),
+                    placeholder: (_, __) => _lightPlaceholder(),
+                    errorWidget: (_, __, ___) => _lightPlaceholder(),
                   )
-                : _darkPlaceholder(),
+                : _lightPlaceholder(),
 
             // Play button
             Container(
@@ -306,13 +306,13 @@ class _VideoThumb extends StatelessWidget {
     );
   }
 
-  Widget _darkPlaceholder() {
+  Widget _lightPlaceholder() {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFF1A1A1A),
+      color: UbuntuColors.canvas,
       child: const Center(
-        child: Icon(Icons.videocam, color: Color(0xFF444444), size: 48),
+        child: Icon(Icons.videocam, color: UbuntuColors.muted, size: 48),
       ),
     );
   }

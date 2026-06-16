@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import '../../services/post_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/gradient_button.dart';
+import '../../utils/video_thumbnail_stub.dart'
+  if (dart.library.html) '../../utils/video_thumbnail_web.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -18,10 +20,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _postService = PostService();
   final _picker      = ImagePicker();
 
-  List<XFile> _images   = [];
+  List<XFile> _images    = [];
   XFile?     _video;
-  bool       _loading   = false;
-  String     _mediaType = 'text'; // text | image | video
+  XFile?     _thumbnail;
+  Uint8List? _thumbBytes;
+  bool       _loading    = false;
+  String     _mediaType  = 'text'; // text | image | video
 
   @override
   void dispose() {
@@ -33,9 +37,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final files = await _picker.pickMultiImage(imageQuality: 80);
     if (files.isNotEmpty && mounted) {
       setState(() {
-        _images    = files;
-        _video     = null;
-        _mediaType = 'image';
+        _images     = files;
+        _video      = null;
+        _thumbnail  = null;
+        _thumbBytes = null;
+        _mediaType  = 'image';
       });
     }
   }
@@ -45,9 +51,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (file != null && mounted) {
       setState(() {
         _video     = file;
+        _thumbnail = null;
         _images    = [];
         _mediaType = 'video';
       });
+      // Generate thumbnail on web (best-effort)
+      final thumb = await generateVideoThumbnail(file);
+      if (thumb != null && mounted) {
+        final bytes = await thumb.readAsBytes();
+        setState(() {
+          _thumbnail = thumb;
+          _thumbBytes = bytes;
+        });
+      }
     }
   }
 
@@ -64,7 +80,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       if (_mediaType == 'image' && _images.isNotEmpty) {
         await _postService.createImagePost(caption, _images);
       } else if (_mediaType == 'video' && _video != null) {
-        await _postService.createVideoPost(caption, _video!);
+        await _postService.createVideoPost(caption, _video!, thumbnail: _thumbnail);
       } else {
         await _postService.createTextPost(caption);
       }
@@ -124,8 +140,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             else if (_video != null)
               Container(
                 height: 280,
-                decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
-                child: const Center(child: Icon(Icons.videocam, color: Colors.white, size: 48)),
+                decoration: BoxDecoration(
+                  color: _thumbBytes != null ? UbuntuColors.canvas : Colors.black,
+                  borderRadius: BorderRadius.circular(12),
+                  image: _thumbBytes != null
+                      ? DecorationImage(
+                          image: MemoryImage(_thumbBytes!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: _thumbnail == null
+                    ? const Center(child: CircularProgressIndicator(color: UbuntuColors.primary))
+                    : const Center(
+                        child: Icon(Icons.play_circle_filled, color: Colors.white, size: 56),
+                      ),
               )
             else
               Container(
@@ -158,7 +187,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   _MediaBtn(
                     icon:  Icons.close,
                     label: 'Clear',
-                    onTap: () => setState(() { _images = []; _video = null; _mediaType = 'text'; }),
+                    onTap: () => setState(() { _images = []; _video = null; _thumbnail = null; _thumbBytes = null; _mediaType = 'text'; }),
                   ),
                 ],
               ],
