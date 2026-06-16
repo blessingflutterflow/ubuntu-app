@@ -44,7 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Firebase secrets — never commit these
+# Firebase native config — contains keys, keep off git for mobile
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
-lib/firebase_options.dart
+# NOTE: firebase_options.dart is committed intentionally
+# Flutter web compiles keys into JS anyway — security is via Firebase Rules
