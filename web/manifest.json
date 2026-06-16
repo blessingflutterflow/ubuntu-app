@@ -1,0 +1,35 @@
+{
+    "name": "Ubuntu Oasis",
+    "short_name": "Ubuntu Oasis",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FFFFFF",
+    "theme_color": "#00C853",
+    "description": "Connect with your community on Ubuntu Oasis",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
