@@ -39,8 +39,7 @@ final router = GoRouter(
     GoRoute(
       path: '/comments/:postId',
       builder: (_, state) => CommentsScreen(
-        postId:    state.pathParameters['postId']!,
-        postOwner: state.extra as String? ?? '',
+        postId: state.pathParameters['postId']!,
       ),
     ),
   ],
