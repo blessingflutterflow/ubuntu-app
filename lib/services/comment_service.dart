@@ -15,9 +15,12 @@ class CommentService {
     return _db
         .collection('comments')
         .where('postId', isEqualTo: postId)
-        .orderBy('createdAt', descending: false)
         .snapshots()
-        .map((s) => s.docs.map((d) => CommentModel.fromMap(d.data(), d.id)).toList());
+        .map((s) {
+          final list = s.docs.map((d) => CommentModel.fromMap(d.data(), d.id)).toList();
+          list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          return list;
+        });
   }
 
   Future<void> addComment({
