@@ -53,13 +53,25 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
         .collection('stories')
         .doc(widget.userId)
         .collection('items')
-        .where('expiresAt', isGreaterThan: now)
-        .orderBy('expiresAt')
         .get();
 
     if (!mounted) return;
 
-    final stories = snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+    final stories = snap.docs
+        .map((d) => {'id': d.id, ...d.data()})
+        .where((s) {
+          final exp = s['expiresAt'];
+          if (exp is Timestamp) return exp.toDate().isAfter(now.toDate());
+          return true;
+        })
+        .toList()
+      ..sort((a, b) {
+          final ta = a['createdAt'];
+          final tb = b['createdAt'];
+          final da = ta is Timestamp ? ta.toDate() : DateTime(0);
+          final db = tb is Timestamp ? tb.toDate() : DateTime(0);
+          return da.compareTo(db);
+        });
 
     if (stories.isEmpty) {
       context.pop();
