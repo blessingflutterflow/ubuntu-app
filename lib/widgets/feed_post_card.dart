@@ -109,8 +109,8 @@ class _FeedPostCardState extends State<FeedPostCard> with SingleTickerProviderSt
         // ── Media ──
         if (post.mediaType == MediaType.IMAGE && post.mediaUrls.isNotEmpty)
           _ImageMedia(
-            url:       post.mediaUrls.first,
-            showBurst: _showBurst,
+            urls:       post.mediaUrls,
+            showBurst:  _showBurst,
             burstScale: _burstScale,
             onDoubleTap: _doubleTapLike,
           )
@@ -209,38 +209,90 @@ class _LikeButton extends StatelessWidget {
   }
 }
 
-class _ImageMedia extends StatelessWidget {
-  final String    url;
-  final bool      showBurst;
+class _ImageMedia extends StatefulWidget {
+  final List<String> urls;
+  final bool         showBurst;
   final Animation<double> burstScale;
   final VoidCallback onDoubleTap;
-  const _ImageMedia({required this.url, required this.showBurst, required this.burstScale, required this.onDoubleTap});
+  const _ImageMedia({required this.urls, required this.showBurst, required this.burstScale, required this.onDoubleTap});
+
+  @override
+  State<_ImageMedia> createState() => _ImageMediaState();
+}
+
+class _ImageMediaState extends State<_ImageMedia> {
+  final _pageCtrl = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final urls = widget.urls;
     return GestureDetector(
-      onDoubleTap: onDoubleTap,
+      onDoubleTap: widget.onDoubleTap,
       child: AspectRatio(
         aspectRatio: 4 / 5,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            CachedNetworkImage(
-              imageUrl:    url,
-              fit:         BoxFit.cover,
-              width:       double.infinity,
-              placeholder: (_, __) => Container(
-                color: UbuntuColors.surface,
-                child: const Center(child: CircularProgressIndicator(color: UbuntuColors.primary, strokeWidth: 2)),
-              ),
-              errorWidget: (_, __, ___) => Container(
-                color: UbuntuColors.surface,
-                child: const Icon(Icons.broken_image, color: UbuntuColors.muted, size: 48),
+            PageView.builder(
+              controller: _pageCtrl,
+              itemCount:  urls.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) => CachedNetworkImage(
+                imageUrl:    urls[i],
+                fit:         BoxFit.cover,
+                width:       double.infinity,
+                placeholder: (_, __) => Container(
+                  color: UbuntuColors.surface,
+                  child: const Center(child: CircularProgressIndicator(color: UbuntuColors.primary, strokeWidth: 2)),
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  color: UbuntuColors.surface,
+                  child: const Icon(Icons.broken_image, color: UbuntuColors.muted, size: 48),
+                ),
               ),
             ),
-            if (showBurst)
+            // Dot indicators — only show when more than 1 image
+            if (urls.length > 1)
+              Positioned(
+                bottom: 10,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(urls.length, (i) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width:  _page == i ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color:        _page == i ? UbuntuColors.primary : Colors.white70,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  )),
+                ),
+              ),
+            // Image count badge (top right) — only when multiple
+            if (urls.length > 1)
+              Positioned(
+                top: 10, right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text('${_page + 1}/${urls.length}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            if (widget.showBurst)
               ScaleTransition(
-                scale: burstScale,
+                scale: widget.burstScale,
                 child: const Icon(Icons.favorite, color: Colors.white, size: 96),
               ),
           ],
