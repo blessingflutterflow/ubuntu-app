@@ -222,7 +222,7 @@ class _FeedTopBar extends StatelessWidget {
                   begin:  Alignment.topLeft,
                   end:    Alignment.bottomRight,
                 ).createShader(b),
-                child: const Text('ubuntu', style: UbuntuText.wordmark, ),
+                child: const Text('ubuntuness', style: UbuntuText.wordmark, ),
               ),
               const Spacer(),
               StreamBuilder<int>(

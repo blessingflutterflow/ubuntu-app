@@ -56,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   end:    Alignment.bottomRight,
                 ).createShader(bounds),
                 child: const Text(
-                  'ubuntu',
+                  'ubuntuness',
                   style: TextStyle(
                     fontSize:    42,
                     fontWeight:  FontWeight.w700,

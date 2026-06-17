@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     end:    Alignment.bottomRight,
                   ).createShader(b),
                   child: const Text(
-                    'ubuntu',
+                    'ubuntuness',
                     style: TextStyle(fontSize: 36, fontWeight: FontWeight.w700, letterSpacing: -1, color: Colors.white),
                     textAlign: TextAlign.center,
                   ),
