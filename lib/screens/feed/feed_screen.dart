@@ -260,7 +260,7 @@ class _OwnStoryItem extends StatelessWidget {
     return GestureDetector(
       onTap: () => user.hasActiveStory
           ? context.push('/story/${user.id}', extra: true)
-          : context.push('/create-post'),
+          : context.push('/create-story'),
       child: Padding(
         padding: const EdgeInsets.only(right: 16),
         child: Column(

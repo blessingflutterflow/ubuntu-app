@@ -11,6 +11,7 @@ import 'screens/post/create_post_screen.dart';
 import 'screens/post/post_detail_screen.dart';
 import 'screens/comments/comments_screen.dart';
 import 'screens/story/story_viewer_screen.dart';
+import 'screens/story/create_story_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -37,6 +38,7 @@ final router = GoRouter(
       path: '/post/:postId',
       builder: (_, state) => PostDetailScreen(postId: state.pathParameters['postId']!),
     ),
+    GoRoute(path: '/create-story', builder: (_, __) => const CreateStoryScreen()),
     GoRoute(
       path: '/story/:userId',
       builder: (_, state) => StoryViewerScreen(
