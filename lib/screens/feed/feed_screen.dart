@@ -41,7 +41,41 @@ class _FeedScreenState extends State<FeedScreen> {
         selected: _tab,
         onSelect: (i) {
           if (i == 2) {
-            context.push('/create-post');
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: UbuntuColors.canvas,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (_) => SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 40, height: 4,
+                        decoration: BoxDecoration(color: UbuntuColors.divider, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(height: 20),
+                      ListTile(
+                        leading: const CircleAvatar(backgroundColor: UbuntuColors.primary,
+                          child: Icon(Icons.grid_on, color: Colors.white)),
+                        title: const Text('New Post', style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: const Text('Share photos or videos to your feed'),
+                        onTap: () { Navigator.pop(context); context.push('/create-post'); },
+                      ),
+                      ListTile(
+                        leading: const CircleAvatar(backgroundColor: UbuntuColors.accent,
+                          child: Icon(Icons.auto_stories, color: Colors.white)),
+                        title: const Text('New Story', style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: const Text('Share a moment that disappears in 24h'),
+                        onTap: () { Navigator.pop(context); context.push('/create-story'); },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ),
+            );
             return;
           }
           if (i == 3) {
