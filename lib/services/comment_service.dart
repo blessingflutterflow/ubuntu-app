@@ -1,62 +1,84 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:uuid/uuid.dart';
 import '../models/comment_model.dart';
 import 'notification_service.dart';
 
 class CommentService {
-  final _firestore = FirebaseFirestore.instance;
-  final _auth      = FirebaseAuth.instance;
-  final _notif     = NotificationService();
-  final _uuid      = const Uuid();
+  final _db    = FirebaseFirestore.instance;
+  final _auth  = FirebaseAuth.instance;
+  final _notif = NotificationService();
 
   String? get _uid => _auth.currentUser?.uid;
 
+  // Top-level 'comments' collection — same as Android app
   Stream<List<CommentModel>> commentsStream(String postId) {
-    return _firestore
-        .collection('posts')
-        .doc(postId)
+    return _db
         .collection('comments')
-        .orderBy('timestamp', descending: false)
+        .where('postId', isEqualTo: postId)
+        .orderBy('createdAt', descending: false)
         .snapshots()
         .map((s) => s.docs.map((d) => CommentModel.fromMap(d.data(), d.id)).toList());
   }
 
-  Future<void> addComment(String postId, String text, String postOwnerId) async {
+  Future<void> addComment({
+    required String postId,
+    required String text,
+    required String postOwnerId,
+    String? imageUrl,
+    String? parentCommentId,
+    String? parentCommentUserId,
+  }) async {
     final uid = _uid;
     if (uid == null) return;
 
-    final userData = await _firestore.collection('users').doc(uid).get();
-    final data     = userData.data() ?? {};
-    final commentId = _uuid.v4();
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final u = userDoc.data() ?? {};
 
-    await _firestore.collection('posts').doc(postId).collection('comments').doc(commentId).set({
-      'id':                  commentId,
-      'postId':              postId,
-      'userId':              uid,
-      'username':            data['username'] ?? 'user',
-      'userProfileImageUrl': data['profileImageUrl'],
-      'text':                text,
-      'timestamp':           FieldValue.serverTimestamp(),
-      'likesCount':          0,
+    final ref = _db.collection('comments').doc();
+    await ref.set({
+      'postId':           postId,
+      'userId':           uid,
+      'username':         u['username'] ?? 'user',
+      'userProfileImage': u['profileImageUrl'] ?? '',
+      'text':             text,
+      'imageUrl':         imageUrl,
+      'audioUrl':         null,
+      'parentCommentId':  parentCommentId,
+      'likesCount':       0,
+      'likedBy':          [],
+      'createdAt':        FieldValue.serverTimestamp(),
     });
 
-    await _firestore.collection('posts').doc(postId).update({
+    // Increment post comment count
+    await _db.collection('posts').doc(postId).update({
       'commentsCount': FieldValue.increment(1),
     });
 
-    _notif.sendCommentNotification(
-      postId:      postId,
-      postOwnerId: postOwnerId,
-      commentId:   commentId,
-      commentText: text,
-    );
+    // Send notification
+    if (parentCommentId != null && parentCommentUserId != null && parentCommentUserId != uid) {
+      _notif.sendCommentNotification(
+        postId:      postId,
+        postOwnerId: parentCommentUserId,
+        commentId:   ref.id,
+        commentText: text,
+      );
+    } else if (parentCommentId == null && postOwnerId.isNotEmpty && postOwnerId != uid) {
+      _notif.sendCommentNotification(
+        postId:      postId,
+        postOwnerId: postOwnerId,
+        commentId:   ref.id,
+        commentText: text,
+      );
+    }
   }
 
-  Future<void> deleteComment(String postId, String commentId) async {
-    await _firestore.collection('posts').doc(postId).collection('comments').doc(commentId).delete();
-    await _firestore.collection('posts').doc(postId).update({
-      'commentsCount': FieldValue.increment(-1),
+  Future<void> toggleLike(String commentId, List<String> likedBy) async {
+    final uid = _uid;
+    if (uid == null) return;
+    final isLiked = likedBy.contains(uid);
+    await _db.collection('comments').doc(commentId).update({
+      'likedBy':    isLiked ? FieldValue.arrayRemove([uid]) : FieldValue.arrayUnion([uid]),
+      'likesCount': FieldValue.increment(isLiked ? -1 : 1),
     });
   }
 }
