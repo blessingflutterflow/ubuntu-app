@@ -72,8 +72,19 @@ class _FeedPostCardState extends State<FeedPostCard> with SingleTickerProviderSt
     });
   }
 
-  void _share() {
-    // Share deep link matching Android implementation
+  Future<void> _share() async {
+    // Same deep link format as the Android app
+    final link = 'https://blessingflutterflow.github.io/ubuntu-oasis-share/?post=${widget.post.id}';
+    await Clipboard.setData(ClipboardData(text: link));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Link copied to clipboard'),
+          backgroundColor: UbuntuColors.primary,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
