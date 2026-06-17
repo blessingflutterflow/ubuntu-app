@@ -10,6 +10,7 @@ import 'screens/profile/edit_profile_screen.dart';
 import 'screens/post/create_post_screen.dart';
 import 'screens/post/post_detail_screen.dart';
 import 'screens/comments/comments_screen.dart';
+import 'screens/story/story_viewer_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -35,6 +36,13 @@ final router = GoRouter(
     GoRoute(
       path: '/post/:postId',
       builder: (_, state) => PostDetailScreen(postId: state.pathParameters['postId']!),
+    ),
+    GoRoute(
+      path: '/story/:userId',
+      builder: (_, state) => StoryViewerScreen(
+        userId:     state.pathParameters['userId']!,
+        isOwnStory: state.extra as bool? ?? false,
+      ),
     ),
     GoRoute(
       path: '/comments/:postId',

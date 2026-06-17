@@ -257,33 +257,38 @@ class _OwnStoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 80, height: 80,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                user.hasActiveStory
-                    ? StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: true,  size: 80)
-                    : UbuntuAvatar(url: user.profileImageUrl, name: user.username, size: 80, borderWidth: 1),
-                Positioned(
-                  bottom: 0, right: 0,
-                  child: Container(
-                    width: 22, height: 22,
-                    decoration: const BoxDecoration(color: UbuntuColors.primary, shape: BoxShape.circle),
-                    child: const Icon(Icons.add, color: Colors.white, size: 14),
+    return GestureDetector(
+      onTap: () => user.hasActiveStory
+          ? context.push('/story/${user.id}', extra: true)
+          : context.push('/create-post'),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 80, height: 80,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  user.hasActiveStory
+                      ? StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: true, size: 80)
+                      : UbuntuAvatar(url: user.profileImageUrl, name: user.username, size: 80, borderWidth: 1),
+                  Positioned(
+                    bottom: 0, right: 0,
+                    child: Container(
+                      width: 22, height: 22,
+                      decoration: const BoxDecoration(color: UbuntuColors.primary, shape: BoxShape.circle),
+                      child: const Icon(Icons.add, color: Colors.white, size: 14),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 5),
-          const Text('Your Story', style: UbuntuText.storyLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
-        ],
+            const SizedBox(height: 5),
+            const Text('Your Story', style: UbuntuText.storyLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
       ),
     );
   }
@@ -295,24 +300,27 @@ class _StoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: user.hasActiveStory, size: 80),
-          const SizedBox(height: 5),
-          SizedBox(
-            width: 80,
-            child: Text(
-              user.username,
-              style:     UbuntuText.storyLabel,
-              maxLines:  1,
-              overflow:  TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
+    return GestureDetector(
+      onTap: () => context.push('/story/${user.id}', extra: false),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: user.hasActiveStory, size: 80),
+            const SizedBox(height: 5),
+            SizedBox(
+              width: 80,
+              child: Text(
+                user.username,
+                style:     UbuntuText.storyLabel,
+                maxLines:  1,
+                overflow:  TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
