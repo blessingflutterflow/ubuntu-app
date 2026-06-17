@@ -178,10 +178,8 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
             onPressed: () => context.pop(),
           ),
         ),
-        body: Center(
-          child: Text('No stories found\nuid: ${widget.userId}',
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
-            textAlign: TextAlign.center),
+        body: const Center(
+          child: Text('No active stories', style: TextStyle(color: Colors.white54, fontSize: 16)),
         ),
       );
     }

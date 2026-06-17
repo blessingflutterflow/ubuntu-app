@@ -82,16 +82,34 @@ class UserService {
     final followingIds = followSnap.docs.map((d) => d.id).toList();
     if (followingIds.isEmpty) return [];
 
-    final results = <UserModel>[];
+    // Candidate users who claim to have an active story
+    final candidates = <UserModel>[];
     for (final chunk in _chunks(followingIds, 10)) {
       final snap = await _firestore.collection('users')
           .where(FieldPath.documentId, whereIn: chunk)
           .where('hasActiveStory', isEqualTo: true)
           .get();
       for (final doc in snap.docs) {
-        results.add(UserModel.fromMap(doc.data(), doc.id));
+        candidates.add(UserModel.fromMap(doc.data(), doc.id));
       }
     }
+
+    // Verify each candidate actually has at least one non-expired story.
+    // This prevents showing story rings for users with stale hasActiveStory flags.
+    final now     = Timestamp.now();
+    final results = <UserModel>[];
+    await Future.wait(candidates.map((user) async {
+      final items = await _firestore
+          .collection('stories')
+          .doc(user.id)
+          .collection('items')
+          .get();
+      final hasValid = items.docs.any((d) {
+        final exp = d.data()['expiresAt'];
+        return exp is Timestamp ? exp.toDate().isAfter(now.toDate()) : true;
+      });
+      if (hasValid) results.add(user);
+    }));
     return results;
   }
 

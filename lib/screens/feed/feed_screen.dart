@@ -272,10 +272,10 @@ class _StoriesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 116,
+      height: 124,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         children: [
           if (me != null) _OwnStoryItem(user: me!),
           ...others.map((u) => _StoryItem(user: u)),
@@ -291,38 +291,47 @@ class _OwnStoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => user.hasActiveStory
-          ? context.push('/story/${user.id}', extra: true)
-          : context.push('/create-story'),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 80, height: 80,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  user.hasActiveStory
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 80, height: 80,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Tapping the avatar/ring views the story (or creates if none)
+                GestureDetector(
+                  onTap: () => user.hasActiveStory
+                      ? context.push('/story/${user.id}', extra: true)
+                      : context.push('/create-story'),
+                  child: user.hasActiveStory
                       ? StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: true, size: 80)
                       : UbuntuAvatar(url: user.profileImageUrl, name: user.username, size: 80, borderWidth: 1),
-                  Positioned(
-                    bottom: 0, right: 0,
+                ),
+                // The + badge always opens create-story
+                Positioned(
+                  bottom: 0, right: 0,
+                  child: GestureDetector(
+                    onTap: () => context.push('/create-story'),
                     child: Container(
-                      width: 22, height: 22,
-                      decoration: const BoxDecoration(color: UbuntuColors.primary, shape: BoxShape.circle),
+                      width: 24, height: 24,
+                      decoration: BoxDecoration(
+                        color: UbuntuColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: UbuntuColors.canvas, width: 2),
+                      ),
                       child: const Icon(Icons.add, color: Colors.white, size: 14),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 5),
-            const Text('Your Story', style: UbuntuText.storyLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ],
-        ),
+          ),
+          const SizedBox(height: 5),
+          const Text('Your Story', style: UbuntuText.storyLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
       ),
     );
   }
