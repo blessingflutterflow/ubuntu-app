@@ -38,7 +38,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     _progressCtrl.addStatusListener((s) {
       if (s == AnimationStatus.completed) _next();
     });
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   Future<void> _load() async {
@@ -74,7 +74,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
         });
 
     if (stories.isEmpty) {
-      context.pop();
+      setState(() => _loading = false);
       return;
     }
 
@@ -165,6 +165,22 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator(color: UbuntuColors.primary)),
+      );
+    }
+
+    if (_stories.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: const Center(
+          child: Text('No active stories', style: TextStyle(color: Colors.white54, fontSize: 16)),
+        ),
       );
     }
 
