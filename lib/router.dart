@@ -12,6 +12,9 @@ import 'screens/post/post_detail_screen.dart';
 import 'screens/comments/comments_screen.dart';
 import 'screens/story/story_viewer_screen.dart';
 import 'screens/story/create_story_screen.dart';
+import 'screens/moderation/pending_posts_screen.dart';
+import 'screens/livestream/go_live_screen.dart';
+import 'screens/livestream/live_viewer_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -51,6 +54,12 @@ final router = GoRouter(
       builder: (_, state) => CommentsScreen(
         postId: state.pathParameters['postId']!,
       ),
+    ),
+    GoRoute(path: '/moderation', builder: (_, __) => const PendingPostsScreen()),
+    GoRoute(path: '/go-live',    builder: (_, __) => const GoLiveScreen()),
+    GoRoute(
+      path: '/live/:streamId',
+      builder: (_, state) => LiveViewerScreen(streamId: state.pathParameters['streamId']!),
     ),
   ],
 );

@@ -82,12 +82,20 @@ class _ReelItem extends StatefulWidget {
   State<_ReelItem> createState() => _ReelItemState();
 }
 
+const _kFastForwardSpeed = 2.5;
+
 class _ReelItemState extends State<_ReelItem> {
   VideoPlayerController? _ctrl;
   bool _isMuted  = true;
   bool _isLiked  = false;
   late int _likes;
   final _postService = PostService();
+
+  bool     _isFastForwarding = false;
+  bool     _isDraggingSeek   = false;
+  Duration _position         = Duration.zero;
+  Duration _duration         = Duration.zero;
+  double   _dragFraction     = 0;
 
   @override
   void initState() {
@@ -99,13 +107,20 @@ class _ReelItemState extends State<_ReelItem> {
       _ctrl = VideoPlayerController.networkUrl(Uri.parse(url))
         ..initialize().then((_) {
           if (mounted) {
-            setState(() {});
+            setState(() { _duration = _ctrl!.value.duration; });
             _ctrl!.setLooping(true);
             _ctrl!.setVolume(0);
             if (widget.isActive) _ctrl!.play();
           }
-        });
+        })
+        ..addListener(_onVideoTick);
     }
+  }
+
+  void _onVideoTick() {
+    if (!mounted || _ctrl == null || _isDraggingSeek) return;
+    final pos = _ctrl!.value.position;
+    if (pos != _position) setState(() => _position = pos);
   }
 
   @override
@@ -123,8 +138,39 @@ class _ReelItemState extends State<_ReelItem> {
 
   @override
   void dispose() {
+    _ctrl?.removeListener(_onVideoTick);
     _ctrl?.dispose();
     super.dispose();
+  }
+
+  void _startFastForward() {
+    if (_ctrl == null || !_ctrl!.value.isInitialized) return;
+    setState(() => _isFastForwarding = true);
+    _ctrl!.setPlaybackSpeed(_kFastForwardSpeed);
+  }
+
+  void _stopFastForward() {
+    if (!_isFastForwarding) return;
+    setState(() => _isFastForwarding = false);
+    _ctrl?.setPlaybackSpeed(1.0);
+  }
+
+  void _onSeekDragStart() => setState(() {
+        _isDraggingSeek = true;
+        _dragFraction = _duration.inMilliseconds > 0
+            ? _position.inMilliseconds / _duration.inMilliseconds
+            : 0;
+      });
+
+  void _onSeekDragUpdate(double deltaFraction) => setState(() {
+        _dragFraction = (_dragFraction + deltaFraction).clamp(0.0, 1.0);
+      });
+
+  void _onSeekDragEnd() {
+    setState(() => _isDraggingSeek = false);
+    if (_ctrl != null && _duration.inMilliseconds > 0) {
+      _ctrl!.seekTo(Duration(milliseconds: (_dragFraction * _duration.inMilliseconds).round()));
+    }
   }
 
   void _toggleMute() {
@@ -146,19 +192,89 @@ class _ReelItemState extends State<_ReelItem> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Video / thumbnail
-        Container(color: Colors.black),
-        if (_ctrl != null && _ctrl!.value.isInitialized)
-          FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width:  _ctrl!.value.size.width,
-              height: _ctrl!.value.size.height,
-              child:  VideoPlayer(_ctrl!),
+        // Video / thumbnail — press and hold anywhere on it to fast-forward.
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPressStart: (_) => _startFastForward(),
+          onLongPressEnd:   (_) => _stopFastForward(),
+          onLongPressCancel: _stopFastForward,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(color: Colors.black),
+              if (_ctrl != null && _ctrl!.value.isInitialized)
+                FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width:  _ctrl!.value.size.width,
+                    height: _ctrl!.value.size.height,
+                    child:  VideoPlayer(_ctrl!),
+                  ),
+                )
+              else if (post.videoThumbnailUrl != null && post.videoThumbnailUrl!.isNotEmpty)
+                CachedNetworkImage(imageUrl: post.videoThumbnailUrl!, fit: BoxFit.cover),
+            ],
+          ),
+        ),
+
+        // Fast-forward indicator, TikTok-style — fades in centered near the bottom.
+        Positioned(
+          left: 0, right: 0, bottom: 90,
+          child: Center(
+            child: AnimatedOpacity(
+              opacity: _isFastForwarding ? 1 : 0,
+              duration: const Duration(milliseconds: 150),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.play_arrow, color: Colors.white, size: 16),
+                    Icon(Icons.play_arrow, color: Colors.white, size: 16),
+                    SizedBox(width: 2),
+                    Text('${_kFastForwardSpeed}x', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+              ),
             ),
-          )
-        else if (post.videoThumbnailUrl != null && post.videoThumbnailUrl!.isNotEmpty)
-          CachedNetworkImage(imageUrl: post.videoThumbnailUrl!, fit: BoxFit.cover),
+          ),
+        ),
+
+        // Seek bar — thin line along the bottom, thickens + turns brand-green while dragging.
+        Positioned(
+          left: 2, right: 2, bottom: 0,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final fraction = _isDraggingSeek
+                  ? _dragFraction
+                  : (_duration.inMilliseconds > 0 ? _position.inMilliseconds / _duration.inMilliseconds : 0.0);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (_) => _onSeekDragStart(),
+                onHorizontalDragUpdate: (details) => _onSeekDragUpdate(details.delta.dx / constraints.maxWidth),
+                onHorizontalDragEnd: (_) => _onSeekDragEnd(),
+                child: Container(
+                  height: _isDraggingSeek ? 5 : 2,
+                  color: Colors.transparent,
+                  alignment: Alignment.centerLeft,
+                  child: Stack(
+                    children: [
+                      Container(height: _isDraggingSeek ? 5 : 2, color: Colors.white.withOpacity(0.25)),
+                      FractionallySizedBox(
+                        widthFactor: fraction.clamp(0.0, 1.0),
+                        child: Container(height: _isDraggingSeek ? 5 : 2, color: _isDraggingSeek ? UbuntuColors.primary : Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
 
         // Bottom-left: user + caption
         Positioned(

@@ -1,5 +1,5 @@
 {
-  "buildCommand": "flutter/bin/flutter build web --release",
+  "buildCommand": "flutter/bin/flutter build web --release --dart-define=AGORA_APP_ID=$AGORA_APP_ID",
   "outputDirectory": "build/web",
   "installCommand": "git clone https://github.com/flutter/flutter.git --depth 1 -b stable flutter && flutter/bin/flutter pub get",
   "framework": null

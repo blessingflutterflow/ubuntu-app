@@ -6,6 +6,7 @@ import '../../models/post_model.dart';
 import '../../services/user_service.dart';
 import '../../services/post_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/moderation_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/avatar.dart';
 import '../../utils/time_utils.dart';
@@ -19,14 +20,16 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _userService  = UserService();
-  final _postService  = PostService();
-  final _notifService = NotificationService();
+  final _userService       = UserService();
+  final _postService       = PostService();
+  final _notifService      = NotificationService();
+  final _moderationService = ModerationService();
 
   UserModel?       _profile;
   List<PostModel>  _posts       = [];
   bool             _loading     = true;
   bool             _isFollowing = false;
+  bool             _isAdmin     = false;
 
   String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
   bool   get _isOwn      => widget.userId == _currentUid;
@@ -40,14 +43,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _load() async {
     final results = await Future.wait([
       _userService.getUser(widget.userId),
-      _postService.getUserPosts(widget.userId),
+      _postService.getUserPosts(widget.userId, isOwnProfile: _isOwn),
       if (!_isOwn) _userService.isFollowing(widget.userId),
+      if (_isOwn) _moderationService.isCurrentUserAdmin(),
     ]);
     if (mounted) {
       setState(() {
         _profile     = results[0] as UserModel?;
         _posts       = results[1] as List<PostModel>;
-        _isFollowing = results.length > 2 ? results[2] as bool : false;
+        _isFollowing = !_isOwn && results.length > 2 ? results[2] as bool : false;
+        _isAdmin     = _isOwn && results.length > 2 ? results[2] as bool : false;
         _loading     = false;
       });
     }
@@ -87,8 +92,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           profile:     _profile,
                           isOwn:       _isOwn,
                           isFollowing: _isFollowing,
+                          isAdmin:     _isAdmin,
                           onFollow:    _toggleFollow,
                           onEdit:      () => context.push('/edit-profile'),
+                          onModerate:  () => context.push('/moderation'),
                         ),
                       ),
                       if (_posts.isEmpty)
@@ -99,8 +106,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         SliverGrid(
                           delegate: SliverChildBuilderDelegate(
                             (_, i) => _PostThumb(
-                              post:    _posts[i],
-                              onTap: () => context.push('/post/${_posts[i].id}'),
+                              post:         _posts[i],
+                              isOwnProfile: _isOwn,
+                              onTap:        () => context.push('/post/${_posts[i].id}'),
                             ),
                             childCount: _posts.length,
                           ),
@@ -156,9 +164,19 @@ class _ProfileHeader extends StatelessWidget {
   final UserModel?   profile;
   final bool         isOwn;
   final bool         isFollowing;
+  final bool         isAdmin;
   final VoidCallback onFollow;
   final VoidCallback onEdit;
-  const _ProfileHeader({this.profile, required this.isOwn, required this.isFollowing, required this.onFollow, required this.onEdit});
+  final VoidCallback onModerate;
+  const _ProfileHeader({
+    this.profile,
+    required this.isOwn,
+    required this.isFollowing,
+    required this.isAdmin,
+    required this.onFollow,
+    required this.onEdit,
+    required this.onModerate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -199,9 +217,13 @@ class _ProfileHeader extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Follow / Edit button
-          if (isOwn)
-            _OutlineBtn(label: 'Edit Profile', onTap: onEdit)
-          else
+          if (isOwn) ...[
+            _OutlineBtn(label: 'Edit Profile', onTap: onEdit),
+            if (isAdmin) ...[
+              const SizedBox(height: 8),
+              _FilledBtn(label: 'Pending Approvals', filled: true, onTap: onModerate),
+            ],
+          ] else
             _FilledBtn(
               label:   isFollowing ? 'Following' : 'Follow',
               filled:  !isFollowing,
@@ -289,8 +311,9 @@ class _FilledBtn extends StatelessWidget {
 
 class _PostThumb extends StatelessWidget {
   final PostModel    post;
+  final bool         isOwnProfile;
   final VoidCallback onTap;
-  const _PostThumb({required this.post, required this.onTap});
+  const _PostThumb({required this.post, required this.isOwnProfile, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -305,6 +328,21 @@ class _PostThumb extends StatelessWidget {
               : Container(color: UbuntuColors.input),
           if (post.mediaType == MediaType.VIDEO)
             const Center(child: Icon(Icons.play_circle, color: Colors.white, size: 28)),
+          if (isOwnProfile && post.status != 'APPROVED')
+            Positioned(
+              top: 4, left: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: post.status == 'REJECTED' ? UbuntuColors.liked : const Color(0xFFFFA000),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  post.status == 'REJECTED' ? 'Rejected' : 'Pending',
+                  style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
         ],
       ),
     );

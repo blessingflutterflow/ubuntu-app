@@ -30,6 +30,8 @@ class PostModel {
   final DateTime timestamp;
   bool isLiked;
   bool isBookmarked;
+  final String status;
+  final String? rejectionReason;
 
   PostModel({
     required this.id,
@@ -45,6 +47,8 @@ class PostModel {
     required this.timestamp,
     this.isLiked = false,
     this.isBookmarked = false,
+    this.status = 'APPROVED',
+    this.rejectionReason,
   });
 
   factory PostModel.fromMap(Map<String, dynamic> data, String docId) {
@@ -81,6 +85,8 @@ class PostModel {
       timestamp:        timestamp,
       isLiked:          data['isLiked'] as bool? ?? false,
       isBookmarked:     data['isBookmarked'] as bool? ?? false,
+      status:           data['status'] as String? ?? 'APPROVED',
+      rejectionReason:  data['rejectionReason'] as String?,
     );
   }
 
@@ -99,5 +105,7 @@ class PostModel {
       timestamp:        timestamp,
       isLiked:          isLiked       ?? this.isLiked,
       isBookmarked:     isBookmarked  ?? this.isBookmarked,
+      status:           status,
+      rejectionReason:  rejectionReason,
     );
 }

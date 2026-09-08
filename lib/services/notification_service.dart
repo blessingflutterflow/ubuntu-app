@@ -96,6 +96,85 @@ class NotificationService {
     } catch (_) {}
   }
 
+  /// Notify every admin that a post is awaiting review.
+  Future<void> sendPendingReviewNotification({required String postId, required String authorUsername}) async {
+    final uid = _uid;
+    if (uid == null) return;
+    try {
+      final admins = await _firestore.collection('users').where('isAdmin', isEqualTo: true).get();
+      for (final admin in admins.docs) {
+        await _save(
+          type:           'POST_PENDING_REVIEW',
+          senderId:       uid,
+          senderUsername: authorUsername,
+          receiverId:     admin.id,
+          postId:         postId,
+          message:        '$authorUsername submitted a new post for review',
+        );
+      }
+    } catch (_) {}
+  }
+
+  /// Notify a post's author that it was approved and is now live.
+  Future<void> sendPostApprovedNotification({required String postId, required String authorId}) async {
+    final adminUid = _uid;
+    if (adminUid == null) return;
+    try {
+      final adminData = await _getUserData(adminUid);
+      await _save(
+        type:                  'POST_APPROVED',
+        senderId:              adminUid,
+        senderUsername:        adminData['username'] as String? ?? 'Admin',
+        senderProfileImageUrl: adminData['profileImageUrl'] as String?,
+        receiverId:            authorId,
+        postId:                postId,
+        message:               'Your post was approved and is now live',
+      );
+    } catch (_) {}
+  }
+
+  /// Notify a post's author that it was rejected, with the admin's reason.
+  Future<void> sendPostRejectedNotification({required String postId, required String authorId, required String reason}) async {
+    final adminUid = _uid;
+    if (adminUid == null) return;
+    try {
+      final adminData = await _getUserData(adminUid);
+      await _save(
+        type:                  'POST_REJECTED',
+        senderId:              adminUid,
+        senderUsername:        adminData['username'] as String? ?? 'Admin',
+        senderProfileImageUrl: adminData['profileImageUrl'] as String?,
+        receiverId:            authorId,
+        postId:                postId,
+        message:               'Your post was rejected: $reason',
+        rejectionReason:       reason,
+      );
+    } catch (_) {}
+  }
+
+  /// Notify every follower that the current user just went live.
+  Future<void> sendLivestreamStartedNotification({required String streamId}) async {
+    final uid = _uid;
+    if (uid == null) return;
+    try {
+      final userData  = await _getUserData(uid);
+      final followers = await _getFollowers(uid);
+      if (followers.isEmpty) return;
+
+      for (final followerId in followers) {
+        await _save(
+          type:                  'LIVESTREAM_STARTED',
+          senderId:              uid,
+          senderUsername:        userData['username'] ?? 'Someone',
+          senderProfileImageUrl: userData['profileImageUrl'] as String?,
+          receiverId:            followerId,
+          livestreamId:          streamId,
+          message:               '${userData['username']} is live now',
+        );
+      }
+    } catch (_) {}
+  }
+
   Future<void> markAsRead(String notifId) async {
     await _firestore.collection('notifications').doc(notifId).update({'isRead': true});
     final uid = _uid;
@@ -136,9 +215,11 @@ class NotificationService {
     String? senderProfileImageUrl,
     required String receiverId,
     String? postId,
+    String? livestreamId,
     String? commentId,
     required String message,
     String? postThumbnailUrl,
+    String? rejectionReason,
   }) async {
     final docRef = _firestore.collection('notifications').doc();
     await docRef.set({
@@ -149,9 +230,11 @@ class NotificationService {
       'senderProfileImageUrl': senderProfileImageUrl,
       'receiverId':            receiverId,
       'postId':                postId,
+      'livestreamId':          livestreamId,
       'commentId':             commentId,
       'message':               message,
       'postThumbnailUrl':      postThumbnailUrl,
+      'rejectionReason':       rejectionReason,
       'isRead':                false,
       'timestamp':             FieldValue.serverTimestamp(),
     });

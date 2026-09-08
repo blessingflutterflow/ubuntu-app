@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/post_model.dart';
 import '../../models/user_model.dart';
+import '../../models/livestream_model.dart';
 import '../../services/post_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/user_service.dart';
+import '../../services/livestream_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/feed_post_card.dart';
 import '../../widgets/story_ring.dart';
@@ -102,15 +104,17 @@ class _HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<_HomeTab> {
-  final _postService  = PostService();
-  final _userService  = UserService();
-  final _notifService = NotificationService();
+  final _postService       = PostService();
+  final _userService       = UserService();
+  final _notifService      = NotificationService();
+  final _livestreamService = LivestreamService();
 
-  List<PostModel>  _posts      = [];
-  List<UserModel>  _storyUsers = [];
-  UserModel?       _me;
-  bool             _loading    = true;
-  bool             _refreshing = false;
+  List<PostModel>            _posts       = [];
+  List<UserModel>            _storyUsers  = [];
+  UserModel?                 _me;
+  Map<String, LivestreamModel> _liveByUser = {};
+  bool                        _loading     = true;
+  bool                        _refreshing  = false;
 
   @override
   void initState() {
@@ -126,13 +130,23 @@ class _HomeTabState extends State<_HomeTab> {
       _postService.getPosts(),
       _userService.getCurrentUser(),
       _userService.getStoriesUsers(),
+      _livestreamService.getActiveLivestreams(),
     ]);
 
     if (mounted) {
+      final liveByUser = {for (final s in results[3] as List<LivestreamModel>) s.broadcasterId: s};
+      final storyUsers = (results[2] as List<UserModel>)
+        ..sort((a, b) {
+          final aLive = liveByUser.containsKey(a.id);
+          final bLive = liveByUser.containsKey(b.id);
+          if (aLive != bLive) return aLive ? -1 : 1;
+          return a.username.compareTo(b.username);
+        });
       setState(() {
         _posts      = results[0] as List<PostModel>;
         _me         = results[1] as UserModel?;
-        _storyUsers = results[2] as List<UserModel>;
+        _storyUsers = storyUsers;
+        _liveByUser = liveByUser;
         _loading    = false;
         _refreshing = false;
       });
@@ -160,7 +174,7 @@ class _HomeTabState extends State<_HomeTab> {
                     onRefresh:  _refresh,
                     child: CustomScrollView(
                       slivers: [
-                        SliverToBoxAdapter(child: _StoriesRow(me: _me, others: _storyUsers)),
+                        SliverToBoxAdapter(child: _StoriesRow(me: _me, others: _storyUsers, liveByUser: _liveByUser)),
                         const SliverToBoxAdapter(child: Divider(height: 0)),
                         if (_posts.isEmpty)
                           const SliverFillRemaining(
@@ -267,7 +281,8 @@ class _FeedTopBar extends StatelessWidget {
 class _StoriesRow extends StatelessWidget {
   final UserModel?       me;
   final List<UserModel>  others;
-  const _StoriesRow({this.me, required this.others});
+  final Map<String, LivestreamModel> liveByUser;
+  const _StoriesRow({this.me, required this.others, this.liveByUser = const {}});
 
   @override
   Widget build(BuildContext context) {
@@ -277,9 +292,43 @@ class _StoriesRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         children: [
-          if (me != null) _OwnStoryItem(user: me!),
-          ...others.map((u) => _StoryItem(user: u)),
+          const _GoLiveItem(),
+          if (me != null) _OwnStoryItem(user: me!, liveStreamId: liveByUser[me!.id]?.id),
+          ...others.map((u) => _StoryItem(user: u, liveStreamId: liveByUser[u.id]?.id)),
         ],
+      ),
+    );
+  }
+}
+
+class _GoLiveItem extends StatelessWidget {
+  const _GoLiveItem();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: GestureDetector(
+        onTap: () => context.push('/go-live'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: UbuntuColors.input,
+                shape: BoxShape.circle,
+                border: Border.all(color: UbuntuColors.divider),
+              ),
+              child: const Icon(Icons.videocam, color: UbuntuColors.liked, size: 30),
+            ),
+            const SizedBox(height: 5),
+            const SizedBox(
+              width: 80,
+              child: Text('Go Live', style: UbuntuText.storyLabel, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -287,10 +336,12 @@ class _StoriesRow extends StatelessWidget {
 
 class _OwnStoryItem extends StatelessWidget {
   final UserModel user;
-  const _OwnStoryItem({required this.user});
+  final String? liveStreamId;
+  const _OwnStoryItem({required this.user, this.liveStreamId});
 
   @override
   Widget build(BuildContext context) {
+    final isLive = liveStreamId != null;
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: Column(
@@ -301,13 +352,19 @@ class _OwnStoryItem extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Tapping the avatar/ring views the story (or creates if none)
+                // Tapping the avatar/ring: live > existing story > create new
                 GestureDetector(
-                  onTap: () => user.hasActiveStory
-                      ? context.push('/story/${user.id}', extra: true)
-                      : context.push('/create-story'),
-                  child: user.hasActiveStory
-                      ? StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: true, size: 80)
+                  onTap: () {
+                    if (isLive) {
+                      context.push('/live/$liveStreamId');
+                    } else if (user.hasActiveStory) {
+                      context.push('/story/${user.id}', extra: true);
+                    } else {
+                      context.push('/create-story');
+                    }
+                  },
+                  child: (isLive || user.hasActiveStory)
+                      ? StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: true, size: 80, isLive: isLive)
                       : UbuntuAvatar(url: user.profileImageUrl, name: user.username, size: 80, borderWidth: 1),
                 ),
                 // The + badge always opens create-story
@@ -339,18 +396,22 @@ class _OwnStoryItem extends StatelessWidget {
 
 class _StoryItem extends StatelessWidget {
   final UserModel user;
-  const _StoryItem({required this.user});
+  final String? liveStreamId;
+  const _StoryItem({required this.user, this.liveStreamId});
 
   @override
   Widget build(BuildContext context) {
+    final isLive = liveStreamId != null;
     return GestureDetector(
-      onTap: () => context.push('/story/${user.id}', extra: false),
+      onTap: () => isLive
+          ? context.push('/live/$liveStreamId')
+          : context.push('/story/${user.id}', extra: false),
       child: Padding(
         padding: const EdgeInsets.only(right: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: user.hasActiveStory, size: 80),
+            StoryRing(avatarUrl: user.profileImageUrl, name: user.username, isUnread: user.hasActiveStory || isLive, size: 80, isLive: isLive),
             const SizedBox(height: 5),
             SizedBox(
               width: 80,

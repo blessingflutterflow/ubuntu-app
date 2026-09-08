@@ -8,9 +8,11 @@ class NotificationModel {
   final String? senderProfileImageUrl;
   final String receiverId;
   final String? postId;
+  final String? livestreamId;
   final String? commentId;
   final String message;
   final String? postThumbnailUrl;
+  final String? rejectionReason;
   final bool isRead;
   final DateTime timestamp;
 
@@ -22,9 +24,11 @@ class NotificationModel {
     this.senderProfileImageUrl,
     required this.receiverId,
     this.postId,
+    this.livestreamId,
     this.commentId,
     required this.message,
     this.postThumbnailUrl,
+    this.rejectionReason,
     required this.isRead,
     required this.timestamp,
   });
@@ -46,9 +50,11 @@ class NotificationModel {
       senderProfileImageUrl: data['senderProfileImageUrl'] as String?,
       receiverId:            data['receiverId'] as String? ?? '',
       postId:                data['postId'] as String?,
+      livestreamId:          data['livestreamId'] as String?,
       commentId:             data['commentId'] as String?,
       message:               data['message'] as String? ?? '',
       postThumbnailUrl:      data['postThumbnailUrl'] as String?,
+      rejectionReason:       data['rejectionReason'] as String?,
       isRead:                data['isRead'] as bool? ?? false,
       timestamp:             timestamp,
     );
@@ -62,9 +68,11 @@ class NotificationModel {
     senderProfileImageUrl: senderProfileImageUrl,
     receiverId:            receiverId,
     postId:                postId,
+    livestreamId:          livestreamId,
     commentId:             commentId,
     message:               message,
     postThumbnailUrl:      postThumbnailUrl,
+    rejectionReason:       rejectionReason,
     isRead:                isRead ?? this.isRead,
     timestamp:             timestamp,
   );

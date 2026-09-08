@@ -18,6 +18,7 @@ class PostService {
   Future<List<PostModel>> getPosts({int limit = 20, DocumentSnapshot? lastDoc}) async {
     var query = _firestore
         .collection('posts')
+        .where('status', isEqualTo: 'APPROVED')
         .orderBy('timestamp', descending: true)
         .limit(limit);
     if (lastDoc != null) query = query.startAfterDocument(lastDoc);
@@ -102,8 +103,9 @@ class PostService {
       'timestamp':          FieldValue.serverTimestamp(),
       'isLiked':            false,
       'isBookmarked':       false,
+      'status':             'PENDING',
     });
-    _notif.sendNewPostNotification(postId: postId, postOwnerId: uid);
+    _notif.sendPendingReviewNotification(postId: postId, authorUsername: userData['username'] ?? 'Someone');
     return postId;
   }
 
@@ -128,8 +130,9 @@ class PostService {
       'timestamp':          FieldValue.serverTimestamp(),
       'isLiked':            false,
       'isBookmarked':       false,
+      'status':             'PENDING',
     });
-    _notif.sendNewPostNotification(postId: postId, postOwnerId: uid);
+    _notif.sendPendingReviewNotification(postId: postId, authorUsername: userData['username'] ?? 'Someone');
     return postId;
   }
 
@@ -156,8 +159,9 @@ class PostService {
       'timestamp':           FieldValue.serverTimestamp(),
       'isLiked':             false,
       'isBookmarked':        false,
+      'status':              'PENDING',
     });
-    _notif.sendNewPostNotification(postId: postId, postOwnerId: uid);
+    _notif.sendPendingReviewNotification(postId: postId, authorUsername: userData['username'] ?? 'Someone');
     return postId;
   }
 
@@ -165,10 +169,16 @@ class PostService {
     await _firestore.collection('posts').doc(postId).delete();
   }
 
-  Future<List<PostModel>> getUserPosts(String userId) async {
-    final snap = await _firestore
+  /// Other users only see approved posts on this profile's grid; the owner
+  /// sees all of their own posts (any status), matching the native app.
+  Future<List<PostModel>> getUserPosts(String userId, {bool isOwnProfile = false}) async {
+    Query<Map<String, dynamic>> query = _firestore
         .collection('posts')
-        .where('userId', isEqualTo: userId)
+        .where('userId', isEqualTo: userId);
+    if (!isOwnProfile) {
+      query = query.where('status', isEqualTo: 'APPROVED');
+    }
+    final snap = await query
         .orderBy('timestamp', descending: true)
         .limit(30)
         .get();

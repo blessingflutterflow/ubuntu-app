@@ -85,7 +85,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             notif:   n,
                             onTap: () {
                               _markRead(n);
-                              if (n.postId != null) {
+                              if (n.livestreamId != null) {
+                                context.push('/live/${n.livestreamId}');
+                              } else if (n.postId != null) {
                                 context.push('/post/${n.postId}');
                               } else if (n.type == 'FOLLOW') {
                                 context.push('/profile/${n.senderId}');
@@ -193,22 +195,30 @@ class _NotifRow extends StatelessWidget {
 
   IconData _iconFor(String type) {
     switch (type) {
-      case 'LIKE':            return Icons.favorite;
+      case 'LIKE':                 return Icons.favorite;
       case 'COMMENT':
-      case 'COMMENT_REPLY':  return Icons.chat_bubble;
-      case 'FOLLOW':          return Icons.person_add;
-      case 'NEW_POST':        return Icons.photo_library;
-      default:                return Icons.notifications;
+      case 'COMMENT_REPLY':        return Icons.chat_bubble;
+      case 'FOLLOW':                return Icons.person_add;
+      case 'NEW_POST':
+      case 'POST_PENDING_REVIEW':  return Icons.photo_library;
+      case 'POST_APPROVED':        return Icons.check_circle;
+      case 'POST_REJECTED':        return Icons.cancel;
+      case 'LIVESTREAM_STARTED':   return Icons.videocam;
+      default:                      return Icons.notifications;
     }
   }
 
   Color _colorFor(String type) {
     switch (type) {
-      case 'LIKE':            return UbuntuColors.liked;
+      case 'LIKE':                 return UbuntuColors.liked;
       case 'COMMENT':
-      case 'COMMENT_REPLY':  return UbuntuColors.primary;
-      case 'FOLLOW':          return const Color(0xFF3897F0);
-      default:                return UbuntuColors.primary;
+      case 'COMMENT_REPLY':        return UbuntuColors.primary;
+      case 'FOLLOW':                return const Color(0xFF3897F0);
+      case 'POST_APPROVED':        return UbuntuColors.primary;
+      case 'POST_REJECTED':        return UbuntuColors.liked;
+      case 'POST_PENDING_REVIEW':  return const Color(0xFF3897F0);
+      case 'LIVESTREAM_STARTED':   return UbuntuColors.liked;
+      default:                      return UbuntuColors.primary;
     }
   }
 }
